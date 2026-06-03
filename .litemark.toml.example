@@ -1,0 +1,15 @@
+[preview]
+theme = "github-light"
+scroll_sync = true
+debounce_ms = 200
+
+[render]
+math = true
+mermaid = true
+highlight = true
+callout = true
+emoji = true
+lightbox = true
+
+[export]
+embed_images = true

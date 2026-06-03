@@ -1,0 +1,36 @@
+[package]
+name = "litemark"
+version = "1.0.0"
+edition = "2021"
+description = "Lightweight offline Markdown previewer with math, diagrams, and export"
+authors = ["Caizhaohui"]
+repository = "https://github.com/Caizhaohui/LiteMark"
+homepage = "https://github.com/Caizhaohui/LiteMark"
+readme = "README.md"
+keywords = ["markdown", "preview", "export", "pdf", "cli"]
+categories = ["command-line-utilities", "text-processing", "development-tools"]
+
+[dependencies]
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors"] }
+pulldown-cmark = { version = "0.12", default-features = false, features = ["simd"] }
+notify = "7"
+clap = { version = "4", features = ["derive"] }
+rust-embed = "8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.8"
+open = "5"
+futures = "0.3"
+anyhow = "1"
+url = "2"
+base64 = "0.22"
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "z"
+codegen-units = 1
+panic = "abort"

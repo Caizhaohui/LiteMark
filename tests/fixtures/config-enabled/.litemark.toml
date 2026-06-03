@@ -1,0 +1,15 @@
+[preview]
+theme = "github-dark"
+scroll_sync = false
+debounce_ms = 450
+
+[render]
+math = false
+mermaid = false
+highlight = true
+callout = true
+emoji = false
+lightbox = false
+
+[export]
+embed_images = false

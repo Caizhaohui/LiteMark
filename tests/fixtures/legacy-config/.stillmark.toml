@@ -1,0 +1,6 @@
+[preview]
+theme = "github-dark"
+debounce_ms = 275
+
+[render]
+highlight = false

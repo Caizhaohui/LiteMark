@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Caizhaohui-tib/LiteMark/releases"><img alt="Release" src="https://img.shields.io/github/v/release/Caizhaohui-tib/LiteMark?style=flat-square" /></a>
+  <a href="https://github.com/Caizhaohui/LiteMark/releases"><img alt="Release" src="https://img.shields.io/github/v/release/Caizhaohui/LiteMark?style=flat-square" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="docs/privacy.md"><img alt="Privacy" src="https://img.shields.io/badge/telemetry-none-success?style=flat-square" /></a>
 </p>
@@ -38,7 +38,7 @@
 
 ## Download
 
-**[Latest release (v2.0.0)](https://github.com/Caizhaohui-tib/LiteMark/releases/tag/v2.0.0)**
+**[Latest release (v2.0.0)](https://github.com/Caizhaohui/LiteMark/releases/tag/v2.0.0)**
 
 | Asset | Description |
 |-------|-------------|

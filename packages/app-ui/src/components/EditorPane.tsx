@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import Editor, { loader, type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
+import { useT } from "../i18n/I18nProvider";
 
 // Bundle Monaco from node_modules (no CDN) so the offline desktop app works.
 loader.config({ monaco });
@@ -32,6 +33,7 @@ export function EditorPane({
   scrollRatio,
   onScrollRatio,
 }: EditorPaneProps): JSX.Element {
+  const t = useT();
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const applyingRemoteScroll = useRef(false);
   const dark = usePrefersDark();
@@ -72,9 +74,7 @@ export function EditorPane({
   if (disabled) {
     return (
       <div className="editor">
-        <div className="editor__placeholder">
-          No document open. Press ＋ to create or Open to load a file.
-        </div>
+        <div className="editor__placeholder">{t("editor.empty")}</div>
       </div>
     );
   }
@@ -105,7 +105,7 @@ export function EditorPane({
           wordBasedSuggestions: "off",
           padding: { top: 12, bottom: 12 },
         }}
-        loading={<div className="editor__placeholder">Loading editor…</div>}
+        loading={<div className="editor__placeholder">{t("editor.loading")}</div>}
       />
     </div>
   );

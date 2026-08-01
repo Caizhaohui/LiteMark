@@ -4,6 +4,7 @@
  */
 
 import type { RecoveryEntry } from "@litemark/shared-protocol";
+import { useT } from "../i18n/I18nProvider";
 
 interface RecoveryPromptProps {
   entries: RecoveryEntry[];
@@ -18,21 +19,18 @@ export function RecoveryPrompt({
   onDiscardOne,
   onDiscardAll,
 }: RecoveryPromptProps): JSX.Element {
+  const t = useT();
+
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal modal--wide">
-        <h2 className="modal__title">Recover documents?</h2>
-        <p className="modal__body">
-          The previous session ended with unsaved work. LiteMark kept a copy — restore a document to
-          continue editing, or discard it.
-        </p>
+        <h2 className="modal__title">{t("recovery.title")}</h2>
+        <p className="modal__body">{t("recovery.body")}</p>
         <ul className="recovery__list">
           {entries.map((e) => (
             <li key={e.recoveryKey} className="recovery__item">
               <div className="recovery__meta">
-                <span className="recovery__name">
-                  {e.originalPath ?? "Untitled"}
-                </span>
+                <span className="recovery__name">{e.originalPath ?? t("document.untitled")}</span>
                 <span className="recovery__sub">
                   rev {e.revision} · {e.capturedAt}
                 </span>
@@ -43,14 +41,10 @@ export function RecoveryPrompt({
                   className="btn btn--primary"
                   onClick={() => onRestore(e.recoveryKey)}
                 >
-                  Restore
+                  {t("recovery.restore")}
                 </button>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => onDiscardOne(e.recoveryKey)}
-                >
-                  Discard
+                <button type="button" className="btn" onClick={() => onDiscardOne(e.recoveryKey)}>
+                  {t("recovery.discard")}
                 </button>
               </div>
             </li>
@@ -58,7 +52,7 @@ export function RecoveryPrompt({
         </ul>
         <div className="modal__actions">
           <button type="button" className="btn" onClick={onDiscardAll}>
-            Discard all
+            {t("recovery.discardAll")}
           </button>
         </div>
       </div>

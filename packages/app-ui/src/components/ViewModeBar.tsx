@@ -5,6 +5,7 @@
  */
 
 import type { PreviewLayout } from "@litemark/shared-protocol";
+import { useT } from "../i18n/I18nProvider";
 
 interface ViewModeBarProps {
   layout: PreviewLayout;
@@ -12,16 +13,18 @@ interface ViewModeBarProps {
   disabled?: boolean;
 }
 
-const OPTIONS: { id: PreviewLayout; label: string; title: string }[] = [
-  { id: "source", label: "Source", title: "Source only (Monaco)" },
-  { id: "split", label: "Split", title: "Source + preview side by side" },
-  { id: "preview", label: "Preview", title: "Preview only" },
-];
-
 export function ViewModeBar({ layout, onChange, disabled }: ViewModeBarProps): JSX.Element {
+  const t = useT();
+
+  const options: { id: PreviewLayout; label: string; title: string }[] = [
+    { id: "source", label: t("layout.source"), title: t("layout.sourceTitle") },
+    { id: "split", label: t("layout.split"), title: t("layout.splitTitle") },
+    { id: "preview", label: t("layout.preview"), title: t("layout.previewTitle") },
+  ];
+
   return (
-    <div className="viewmode" role="toolbar" aria-label="View layout">
-      {OPTIONS.map((opt) => (
+    <div className="viewmode" role="toolbar" aria-label={t("layout.viewLayout")}>
+      {options.map((opt) => (
         <button
           key={opt.id}
           type="button"

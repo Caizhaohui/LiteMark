@@ -3,6 +3,8 @@
  */
 
 import type { PreviewLayout, SessionSummary } from "@litemark/shared-protocol";
+import { useT } from "../i18n/I18nProvider";
+import { LanguageSelect } from "./LanguageSelect";
 import { ViewModeBar } from "./ViewModeBar";
 import { EditorModeBar, type EditorMode } from "./EditorModeBar";
 
@@ -45,66 +47,69 @@ export function TabBar({
   onSettings,
   onLicenses,
 }: TabBarProps): JSX.Element {
+  const t = useT();
+
   return (
     <div className="tabbar">
       <div className="tabbar__toolbar">
-        <button type="button" className="btn" onClick={onNew} disabled={busy} title="New (Ctrl+N)">
+        <button type="button" className="btn" onClick={onNew} disabled={busy} title={t("toolbar.newTitle")}>
           ＋
         </button>
-        <button type="button" className="btn" onClick={onOpen} disabled={busy} title="Open (Ctrl+O)">
-          Open
+        <button type="button" className="btn" onClick={onOpen} disabled={busy} title={t("toolbar.openTitle")}>
+          {t("toolbar.open")}
         </button>
-        <button type="button" className="btn" onClick={onSave} disabled={busy} title="Save (Ctrl+S)">
-          Save
+        <button type="button" className="btn" onClick={onSave} disabled={busy} title={t("toolbar.saveTitle")}>
+          {t("toolbar.save")}
         </button>
         <button
           type="button"
           className="btn"
           onClick={onExportHtml}
           disabled={busy || !hasActive}
-          title="Export HTML"
+          title={t("toolbar.exportHtmlTitle")}
         >
-          HTML
+          {t("toolbar.exportHtml")}
         </button>
         <button
           type="button"
           className="btn"
           onClick={onExportPdf}
           disabled={busy || !hasActive}
-          title="Export PDF"
+          title={t("toolbar.exportPdfTitle")}
         >
-          PDF
+          {t("toolbar.exportPdf")}
         </button>
         <button
           type="button"
           className="btn"
           onClick={() => onExportPandoc("docx")}
           disabled={busy || !hasActive}
-          title="Export DOCX via Pandoc"
+          title={t("toolbar.exportDocxTitle")}
         >
-          DOCX
+          {t("toolbar.exportDocx")}
         </button>
         <button
           type="button"
           className="btn"
           onClick={() => onExportPandoc("epub")}
           disabled={busy || !hasActive}
-          title="Export EPUB via Pandoc"
+          title={t("toolbar.exportEpubTitle")}
         >
-          EPUB
+          {t("toolbar.exportEpub")}
         </button>
-        <button type="button" className="btn" onClick={onSettings} disabled={busy} title="Settings">
-          ⚙
+        <button type="button" className="btn" onClick={onSettings} disabled={busy} title={t("toolbar.settingsTitle")}>
+          ⚙ {t("toolbar.settings")}
         </button>
-        <button type="button" className="btn" onClick={onLicenses} disabled={busy} title="Licenses">
+        <button type="button" className="btn" onClick={onLicenses} disabled={busy} title={t("toolbar.licensesTitle")}>
           ©
         </button>
         <div className="tabbar__spacer" />
+        <LanguageSelect />
         <EditorModeBar mode={editorMode} onChange={onEditorModeChange} disabled={busy || !hasActive} />
         <ViewModeBar layout={layout} onChange={onLayoutChange} disabled={busy} />
       </div>
       <div className="tabbar__tabs" role="tablist">
-        {sessions.length === 0 && <span className="tabbar__empty">No documents open</span>}
+        {sessions.length === 0 && <span className="tabbar__empty">{t("toolbar.noDocuments")}</span>}
         {sessions.map((s) => (
           <button
             key={s.id}
@@ -116,9 +121,9 @@ export function TabBar({
             title={s.filePath ?? s.displayName}
           >
             <span className="tab__name">{s.displayName}</span>
-            {s.dirty && <span className="tab__dot" aria-label="unsaved changes" />}
+            {s.dirty && <span className="tab__dot" aria-label={t("status.unsaved")} />}
             {s.readOnly && (
-              <span className="tab__ro" title="read-only">
+              <span className="tab__ro" title={t("status.readOnly")}>
                 ⊘
               </span>
             )}
@@ -126,7 +131,7 @@ export function TabBar({
               className="tab__close"
               role="button"
               tabIndex={0}
-              aria-label={`Close ${s.displayName}`}
+              aria-label={t("toolbar.closeTab", { name: s.displayName })}
               onClick={(e) => {
                 e.stopPropagation();
                 onClose(s.id);

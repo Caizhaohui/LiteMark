@@ -16,6 +16,7 @@ pub struct FileFilter {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OpenDialogOptions {
     #[serde(default)]
     pub title: Option<String>,
@@ -24,15 +25,16 @@ pub struct OpenDialogOptions {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SaveDialogOptions {
     #[serde(default)]
     pub title: Option<String>,
     #[serde(default)]
     pub filters: Vec<FileFilter>,
-    /// Suggested filename.
+    /// Suggested filename (e.g. "notes.pdf" from "notes.md").
     #[serde(default)]
     pub default_file_name: Option<String>,
-    /// Optional starting directory (e.g. last export folder).
+    /// Optional starting directory (source file dir, or last export folder).
     #[serde(default)]
     pub default_directory: Option<String>,
 }

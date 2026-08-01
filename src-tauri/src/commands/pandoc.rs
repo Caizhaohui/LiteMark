@@ -66,13 +66,16 @@ fn which_pandoc() -> Option<PathBuf> {
 }
 
 async fn pandoc_version(bin: &Path) -> Option<String> {
-    let output = Command::new(bin)
-        .arg("--version")
+    let mut cmd = Command::new(bin);
+    cmd.arg("--version")
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await
-        .ok()?;
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let output = cmd.output().await.ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     text.lines().next().map(|s| s.trim().to_string())
 }
@@ -208,18 +211,22 @@ pub async fn export_with_pandoc(
         out_str.clone(),
     ];
 
-    let output_proc = Command::new(&bin)
+    let mut pandoc_cmd = Command::new(&bin);
+    pandoc_cmd
         .args(&args)
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await
-        .map_err(|e| {
-            command_err(SidecarError::new(
-                ErrorCode::ExportFailed,
-                format!("spawn pandoc: {e}"),
-            ))
-        })?;
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        pandoc_cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let output_proc = pandoc_cmd.output().await.map_err(|e| {
+        command_err(SidecarError::new(
+            ErrorCode::ExportFailed,
+            format!("spawn pandoc: {e}"),
+        ))
+    })?;
 
     let _ = tokio::fs::remove_file(&tmp).await;
 

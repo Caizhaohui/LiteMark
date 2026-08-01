@@ -15,7 +15,7 @@ import { exportPdf } from "../crossnote-adapter/export-pdf.js";
 import { probeBrowser } from "../security/browser-probe.js";
 
 /** App + sidecar build version. Matches package.json via the build. */
-export const SIDECAR_VERSION = "0.1.0";
+export const SIDECAR_VERSION = "2.1.0";
 
 // In-memory session registry. For M0 a session is just an opaque id we track so
 // closeSession can report success; crossnote Notebooks are cached per

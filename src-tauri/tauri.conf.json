@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "LiteMark",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "identifier": "com.litemark.app",
   "build": {
     "beforeDevCommand": "pnpm --filter @litemark/render-sidecar build && pnpm --filter @litemark/app-ui dev",

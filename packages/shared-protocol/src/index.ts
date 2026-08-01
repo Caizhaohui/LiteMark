@@ -417,6 +417,7 @@ export function err(
 export const TAURI_COMMANDS = [
   // M0
   "ping_sidecar",
+  "take_pending_cli_files",
   // M1 — documents
   "new_document",
   "open_file",
@@ -566,10 +567,15 @@ export const PREVIEW_THRESHOLDS = {
   fullPreviewBytes: 1 * 1024 * 1024,
   /** Reduced debounce / expensive diagrams off between full and this. */
   reducedPreviewBytes: 5 * 1024 * 1024,
-  /** Default debounce for normal documents (ms). */
+  /** Default debounce for normal documents (ms) while the user is typing. */
   debounceMs: 250,
   /** Debounce when 1–5 MiB (ms). */
   reducedDebounceMs: 750,
+  /**
+   * Debounce for the first preview after open / session switch (ms).
+   * P1-2: 0 so double-click open is not delayed an extra 250 ms.
+   */
+  openDebounceMs: 0,
 } as const;
 
 /** Preview layout mode for the M2 UI (not the same as DocumentSession.mode). */

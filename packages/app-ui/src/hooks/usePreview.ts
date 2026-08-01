@@ -2,6 +2,8 @@
  * M2 live-preview controller.
  *
  * - Debounces editor content (250 ms normal / 750 ms for 1–5 MiB docs).
+ * - P1-2: first preview after open / session switch uses 0 debounce so
+ *   double-click open is not delayed an extra 250 ms.
  * - Sends `render_markdown` with a monotonic revision; discards stale results.
  * - Large-file degradation: > 5 MiB defaults to source-only until the user
  *   requests a manual preview (§8.3).
@@ -70,16 +72,19 @@ export function usePreview({
   const revisionRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSessionRef = useRef<string | null>(null);
+  /** P1-2: skip debounce for the first scheduled preview of each session. */
+  const firstPreviewForSessionRef = useRef(true);
 
   const requestManualPreview = useCallback(() => {
     setManualBump((n) => n + 1);
   }, []);
 
   useEffect(() => {
-    // Session changed: clear preview immediately.
+    // Session changed: clear preview and treat next content as a "first open".
     if (sessionId !== lastSessionRef.current) {
       lastSessionRef.current = sessionId;
       revisionRef.current = 0;
+      firstPreviewForSessionRef.current = true;
       setState(empty);
     }
   }, [sessionId]);
@@ -111,32 +116,42 @@ export function usePreview({
       return;
     }
 
-    const delay = reduced
-      ? PREVIEW_THRESHOLDS.reducedDebounceMs
-      : PREVIEW_THRESHOLDS.debounceMs;
+    // P1-2: open / tab switch / manual request → immediate; typing → debounce.
+    const isFirstForSession = firstPreviewForSessionRef.current;
+    const immediate =
+      isFirstForSession || manualBump > 0 || manualToken > 0;
+    if (isFirstForSession) {
+      firstPreviewForSessionRef.current = false;
+    }
+
+    const delay = immediate
+      ? PREVIEW_THRESHOLDS.openDebounceMs
+      : reduced
+        ? PREVIEW_THRESHOLDS.reducedDebounceMs
+        : PREVIEW_THRESHOLDS.debounceMs;
 
     setState((prev) => ({
       ...prev,
       contentBytes: bytes,
       reduced,
       degraded,
-      status: prev.html ? "pending" : "pending",
+      status: "pending",
       error: null,
     }));
 
     const revision = ++revisionRef.current;
+    const markdownSnapshot = content;
 
-    timerRef.current = setTimeout(() => {
+    const run = () => {
       void (async () => {
         try {
-          // For reduced tier, ask sidecar for lighter options when possible.
           const options = reduced
             ? { mathRenderer: "KaTeX" as const, theme: "github-light.css" }
             : { mathRenderer: "KaTeX" as const, theme: "github-light.css" };
 
           const result = await cmd.renderMarkdown({
             sessionId,
-            markdown: content,
+            markdown: markdownSnapshot,
             revision,
             options,
           });
@@ -171,7 +186,13 @@ export function usePreview({
           }));
         }
       })();
-    }, delay);
+    };
+
+    if (delay <= 0) {
+      run();
+    } else {
+      timerRef.current = setTimeout(run, delay);
+    }
 
     return () => {
       if (timerRef.current) {

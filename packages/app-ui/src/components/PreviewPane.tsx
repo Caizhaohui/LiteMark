@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, type MouseEvent } from "react";
 import type { Diagnostic, TocEntry } from "@litemark/shared-protocol";
+import { useT } from "../i18n/I18nProvider";
 import * as cmd from "../services/tauriCommands";
 
 interface PreviewPaneProps {
@@ -45,6 +46,7 @@ export function PreviewPane({
   scrollToId,
   onTocNavigate,
 }: PreviewPaneProps): JSX.Element {
+  const t = useT();
   const bodyRef = useRef<HTMLDivElement>(null);
   const applyingRemoteScroll = useRef(false);
 
@@ -144,15 +146,15 @@ export function PreviewPane({
     <div className="preview">
       <div className="preview__toolbar">
         <span className="preview__status">
-          {status === "pending" && "Rendering…"}
+          {status === "pending" && t("preview.rendering")}
           {status === "ready" && renderMs != null && `${renderMs} ms`}
-          {status === "error" && "Render failed"}
-          {status === "degraded" && "Large file"}
-          {status === "idle" && "Preview"}
+          {status === "error" && t("preview.renderFailed")}
+          {status === "degraded" && t("preview.largeFile")}
+          {status === "idle" && t("preview.title")}
         </span>
         {degraded && (
           <button type="button" className="btn btn--small" onClick={onRequestPreview}>
-            Preview now
+            {t("preview.previewNow")}
           </button>
         )}
       </div>
@@ -165,18 +167,18 @@ export function PreviewPane({
 
       {status === "degraded" && !html && (
         <div className="preview__degraded">
-          <p>This document is larger than 5 MiB.</p>
-          <p>Live preview is paused to keep the editor responsive.</p>
+          <p>{t("preview.largeFileBody1")}</p>
+          <p>{t("preview.largeFileBody2")}</p>
           <button type="button" className="btn btn--primary" onClick={onRequestPreview}>
-            Render preview once
+            {t("preview.renderOnce")}
           </button>
         </div>
       )}
 
       <div className="preview__body-wrap">
         {toc.length > 0 && (
-          <aside className="preview__toc" aria-label="Table of contents">
-            <div className="preview__toc-title">Contents</div>
+          <aside className="preview__toc" aria-label={t("preview.contents")}>
+            <div className="preview__toc-title">{t("preview.contents")}</div>
             <ul className="preview__toc-list">
               {toc.map((entry) => (
                 <li

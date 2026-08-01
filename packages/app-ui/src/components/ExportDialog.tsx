@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import type { ExportFormat, PdfPageOptions } from "@litemark/shared-protocol";
 import { DEFAULT_PDF_PAGE_OPTIONS } from "@litemark/shared-protocol";
+import { useT } from "../i18n/I18nProvider";
 
 export interface ExportDialogResult {
   format: ExportFormat;
@@ -40,6 +41,7 @@ export function ExportDialog({
   onCancel,
   onAbort,
 }: ExportDialogProps): JSX.Element {
+  const t = useT();
   const [offline, setOffline] = useState(true);
   const [page, setPage] = useState<PdfPageOptions>({ ...DEFAULT_PDF_PAGE_OPTIONS });
 
@@ -48,7 +50,7 @@ export function ExportDialog({
     setPage({ ...DEFAULT_PDF_PAGE_OPTIONS });
   }, [format]);
 
-  const title = format === "html" ? "Export HTML" : "Export PDF";
+  const title = format === "html" ? t("export.htmlTitle") : t("export.pdfTitle");
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="export-title">
@@ -56,9 +58,7 @@ export function ExportDialog({
         <h2 id="export-title" className="modal__title">
           {title}
         </h2>
-        <p className="modal__body">
-          Export <strong>{displayName}</strong> without modifying the source Markdown file.
-        </p>
+        <p className="modal__body">{t("export.body", { name: displayName })}</p>
 
         {format === "html" && (
           <div className="export-form">
@@ -69,11 +69,9 @@ export function ExportDialog({
                 disabled={busy}
                 onChange={(e) => setOffline(e.target.checked)}
               />
-              <span>Offline package (inline CSS, fonts, and images)</span>
+              <span>{t("export.offline")}</span>
             </label>
-            <p className="export-form__hint">
-              Offline mode produces a single HTML file that opens without a network connection.
-            </p>
+            <p className="export-form__hint">{t("export.offlineHint")}</p>
           </div>
         )}
 
@@ -81,16 +79,15 @@ export function ExportDialog({
           <div className="export-form">
             {browserAvailable === false && (
               <div className="export-form__warn" role="alert">
-                No Microsoft Edge or Google Chrome was found. PDF export requires one of these
-                browsers. Install Edge (recommended on Windows) and try again.
+                {t("export.noBrowser")}
               </div>
             )}
             {browserAvailable && browserName && (
-              <p className="export-form__hint">Using: {browserName}</p>
+              <p className="export-form__hint">{t("export.usingBrowser", { name: browserName })}</p>
             )}
 
             <label className="export-form__field">
-              <span>Page size</span>
+              <span>{t("export.pageSize")}</span>
               <select
                 value={page.pageSize}
                 disabled={busy}
@@ -114,7 +111,7 @@ export function ExportDialog({
                 disabled={busy}
                 onChange={(e) => setPage((p) => ({ ...p, landscape: e.target.checked }))}
               />
-              <span>Landscape</span>
+              <span>{t("export.landscape")}</span>
             </label>
 
             <label className="export-form__row">
@@ -124,7 +121,7 @@ export function ExportDialog({
                 disabled={busy}
                 onChange={(e) => setPage((p) => ({ ...p, printBackground: e.target.checked }))}
               />
-              <span>Print background colors</span>
+              <span>{t("export.printBackground")}</span>
             </label>
 
             <label className="export-form__row">
@@ -136,21 +133,21 @@ export function ExportDialog({
                   setPage((p) => ({ ...p, displayHeaderFooter: e.target.checked }))
                 }
               />
-              <span>Header / footer</span>
+              <span>{t("export.headerFooter")}</span>
             </label>
 
             <div className="export-form__margins">
-              <span className="export-form__margins-label">Margins (mm)</span>
+              <span className="export-form__margins-label">{t("export.margins")}</span>
               {(["marginTopMm", "marginRightMm", "marginBottomMm", "marginLeftMm"] as const).map(
                 (key) => {
                   const label =
                     key === "marginTopMm"
-                      ? "Top"
+                      ? t("export.top")
                       : key === "marginRightMm"
-                        ? "Right"
+                        ? t("export.right")
                         : key === "marginBottomMm"
-                          ? "Bottom"
-                          : "Left";
+                          ? t("export.bottom")
+                          : t("export.left");
                   return (
                     <label key={key} className="export-form__field export-form__field--sm">
                       <span>{label}</span>
@@ -185,7 +182,7 @@ export function ExportDialog({
               />
             </div>
             <div className="export-progress__msg">
-              {progressMessage ?? "Exporting…"}{" "}
+              {progressMessage ?? t("export.exporting")}{" "}
               {progress != null && `(${Math.round(progress * 100)}%)`}
             </div>
           </div>
@@ -200,12 +197,12 @@ export function ExportDialog({
         <div className="modal__actions">
           {busy ? (
             <button type="button" className="btn" onClick={onAbort}>
-              Cancel export
+              {t("export.cancelExport")}
             </button>
           ) : (
             <>
               <button type="button" className="btn" onClick={onCancel}>
-                Close
+                {t("export.close")}
               </button>
               <button
                 type="button"
@@ -213,7 +210,7 @@ export function ExportDialog({
                 disabled={format === "pdf" && browserAvailable === false}
                 onClick={() => onConfirm({ format, offline, page })}
               >
-                Export…
+                {t("export.export")}
               </button>
             </>
           )}

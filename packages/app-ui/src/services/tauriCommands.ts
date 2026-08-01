@@ -186,6 +186,32 @@ export function onOpenFiles(
   });
 }
 
+/**
+ * Paths passed on cold start (file association / CLI). Consumed once; empty
+ * afterwards. Pair with `onOpenFiles` for second-instance opens.
+ * Also kicks sidecar warm in Rust when paths are present (P1-3).
+ */
+export function takePendingCliFiles(): Promise<string[]> {
+  return invoke<string[]>("take_pending_cli_files");
+}
+
+/**
+ * Ensure the Node/crossnote render sidecar is running (spawn + ping).
+ * Fire-and-forget on app mount so the first preview is not cold (P1-1 / P1-3).
+ */
+export function warmSidecar(): Promise<boolean> {
+  return invoke<boolean>("warm_sidecar");
+}
+
+/** Ping the sidecar (also spawns it if needed). Returns version info. */
+export function pingSidecar(sentAt?: string): Promise<{
+  version: string;
+  crossnoteVersion: string;
+  receivedAt?: string;
+}> {
+  return invoke("ping_sidecar", { sentAt: sentAt ?? null });
+}
+
 // --- M2 render / links / assets --------------------------------------------
 
 /** Render in-memory Markdown via the sidecar (never writes the source file). */
@@ -249,24 +275,28 @@ export function getThirdPartyNotices(): Promise<string> {
 /** Show a save dialog pre-filtered for HTML export. */
 export async function showHtmlExportDialog(
   defaultFileName: string,
+  preferredDirectory?: string | null,
 ): Promise<string | null> {
-  const dir = await getLastExportDir().catch(() => null);
+  const last = await getLastExportDir().catch(() => null);
   return showSaveDialog(defaultFileName, {
     title: "Export HTML",
     filters: HTML_EXPORT_FILTERS,
-    defaultDirectory: dir ?? undefined,
+    defaultFileName,
+    defaultDirectory: preferredDirectory || last || undefined,
   });
 }
 
 /** Show a save dialog pre-filtered for PDF export. */
 export async function showPdfExportDialog(
   defaultFileName: string,
+  preferredDirectory?: string | null,
 ): Promise<string | null> {
-  const dir = await getLastExportDir().catch(() => null);
+  const last = await getLastExportDir().catch(() => null);
   return showSaveDialog(defaultFileName, {
     title: "Export PDF",
     filters: PDF_EXPORT_FILTERS,
-    defaultDirectory: dir ?? undefined,
+    defaultFileName,
+    defaultDirectory: preferredDirectory || last || undefined,
   });
 }
 
@@ -332,8 +362,9 @@ export function exportWithPandoc(params: PandocExportParams): Promise<PandocExpo
 export async function showPandocExportDialog(
   format: "docx" | "epub" | "latex",
   defaultFileName: string,
+  preferredDirectory?: string | null,
 ): Promise<string | null> {
-  const dir = await getLastExportDir().catch(() => null);
+  const last = await getLastExportDir().catch(() => null);
   const filters =
     format === "docx"
       ? DOCX_EXPORT_FILTERS
@@ -345,7 +376,8 @@ export async function showPandocExportDialog(
   return showSaveDialog(defaultFileName, {
     title,
     filters,
-    defaultDirectory: dir ?? undefined,
+    defaultFileName,
+    defaultDirectory: preferredDirectory || last || undefined,
   });
 }
 

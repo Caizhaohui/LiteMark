@@ -1,10 +1,12 @@
 /**
- * M5/M6 settings: trusted workspaces, pandoc, wiki links, custom CSS path,
+ * M5/M6 settings: language, trusted workspaces, pandoc, wiki links, custom CSS path,
  * experimental flags, crash log export, update status.
  */
 
 import { useEffect, useState } from "react";
 import type { AppSettings, OptionalToolsStatus, UpdateStatus } from "@litemark/shared-protocol";
+import { useI18n } from "../../i18n/I18nProvider";
+import { LanguageSelect } from "../LanguageSelect";
 import * as cmd from "../../services/tauriCommands";
 
 interface SettingsDialogProps {
@@ -12,6 +14,7 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
+  const { t } = useI18n();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [tools, setTools] = useState<OptionalToolsStatus | null>(null);
   const [update, setUpdate] = useState<UpdateStatus | null>(null);
@@ -22,13 +25,13 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
   useEffect(() => {
     void (async () => {
       try {
-        const [s, t, u] = await Promise.all([
+        const [s, tStatus, u] = await Promise.all([
           cmd.getSettings(),
           cmd.probeOptionalTools(),
           cmd.getUpdateStatus(),
         ]);
         setSettings(s);
-        setTools(t);
+        setTools(tStatus);
         setUpdate(u);
       } catch (e) {
         setError(cmd.toCoreError(e).message);
@@ -40,7 +43,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
     if (!settings) return;
     try {
       await cmd.setSettings(settings);
-      setNotice("Settings saved.");
+      setNotice(t("settings.saved"));
       setError(null);
     } catch (e) {
       setError(cmd.toCoreError(e).message);
@@ -53,7 +56,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
       const s = await cmd.trustWorkspace(trustPath.trim());
       setSettings(s);
       setTrustPath("");
-      setNotice("Workspace trusted.");
+      setNotice(t("settings.workspaceTrusted"));
     } catch (e) {
       setError(cmd.toCoreError(e).message);
     }
@@ -71,7 +74,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
   const dumpLog = async () => {
     try {
       const path = await cmd.exportCrashLog();
-      setNotice(`Crash report written to:\n${path}`);
+      setNotice(t("settings.crashWritten", { path }));
     } catch (e) {
       setError(cmd.toCoreError(e).message);
     }
@@ -81,10 +84,19 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div className="modal modal--wide modal--tall">
         <h2 id="settings-title" className="modal__title">
-          Settings
+          {t("settings.title")}
         </h2>
 
-        {!settings && !error && <p className="modal__body">Loading…</p>}
+        {/* Language is client-side only — always shown, even if backend settings fail. */}
+        <div className="settings">
+          <section className="settings__section">
+            <h3 className="settings__h">{t("settings.language")}</h3>
+            <p className="export-form__hint">{t("settings.languageHint")}</p>
+            <LanguageSelect showLabel className="lang-select--block" />
+          </section>
+        </div>
+
+        {!settings && !error && <p className="modal__body">{t("settings.loading")}</p>}
         {error && (
           <div className="export-form__warn" role="alert">
             {error}
@@ -95,20 +107,17 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
         {settings && (
           <div className="settings">
             <section className="settings__section">
-              <h3 className="settings__h">Trusted workspaces</h3>
-              <p className="export-form__hint">
-                New and downloaded documents are untrusted by default. Trusting a
-                folder is required before experimental features can run there.
-              </p>
+              <h3 className="settings__h">{t("settings.trustedTitle")}</h3>
+              <p className="export-form__hint">{t("settings.trustedHint")}</p>
               <ul className="settings__list">
                 {settings.trustedWorkspaces.length === 0 && (
-                  <li className="export-form__hint">No trusted workspaces yet.</li>
+                  <li className="export-form__hint">{t("settings.noTrusted")}</li>
                 )}
                 {settings.trustedWorkspaces.map((p) => (
                   <li key={p} className="settings__row">
                     <code className="settings__code">{p}</code>
                     <button type="button" className="btn btn--small" onClick={() => void removeTrust(p)}>
-                      Revoke
+                      {t("settings.revoke")}
                     </button>
                   </li>
                 ))}
@@ -116,40 +125,44 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
               <div className="settings__row">
                 <input
                   className="settings__input"
-                  placeholder="Absolute folder path"
+                  placeholder={t("settings.trustPlaceholder")}
                   value={trustPath}
                   onChange={(e) => setTrustPath(e.target.value)}
-                  aria-label="Workspace path to trust"
+                  aria-label={t("settings.trustAria")}
                 />
                 <button type="button" className="btn btn--small" onClick={() => void addTrust()}>
-                  Trust
+                  {t("settings.trust")}
                 </button>
               </div>
             </section>
 
             <section className="settings__section">
-              <h3 className="settings__h">Optional tools</h3>
-              <p className="export-form__hint">
-                Missing tools never block the editor. Probes run only when Settings opens.
-              </p>
+              <h3 className="settings__h">{t("settings.toolsTitle")}</h3>
+              <p className="export-form__hint">{t("settings.toolsHint")}</p>
               <ul className="settings__list">
                 <li>
-                  Pandoc:{" "}
+                  {t("settings.pandoc")}:{" "}
                   {tools?.pandoc.available
-                    ? `available (${tools.pandoc.version ?? tools.pandoc.path})`
-                    : "not found"}
+                    ? t("settings.available", {
+                        detail: tools.pandoc.version ?? tools.pandoc.path ?? "",
+                      })
+                    : t("settings.notFound")}
                 </li>
                 <li>
-                  Graphviz:{" "}
-                  {tools?.graphviz.available ? `available (${tools.graphviz.path})` : "not found"}
+                  {t("settings.graphviz")}:{" "}
+                  {tools?.graphviz.available
+                    ? t("settings.available", { detail: tools.graphviz.path ?? "" })
+                    : t("settings.notFound")}
                 </li>
                 <li>
-                  PlantUML:{" "}
-                  {tools?.plantuml.available ? `available (${tools.plantuml.path})` : "not found"}
+                  {t("settings.plantuml")}:{" "}
+                  {tools?.plantuml.available
+                    ? t("settings.available", { detail: tools.plantuml.path ?? "" })
+                    : t("settings.notFound")}
                 </li>
               </ul>
               <label className="export-form__field">
-                <span>Pandoc path (optional override)</span>
+                <span>{t("settings.pandocPath")}</span>
                 <input
                   className="settings__input"
                   value={settings.pandocPath ?? ""}
@@ -164,7 +177,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
             </section>
 
             <section className="settings__section">
-              <h3 className="settings__h">Preview / syntax</h3>
+              <h3 className="settings__h">{t("settings.previewTitle")}</h3>
               <label className="export-form__row">
                 <input
                   type="checkbox"
@@ -173,10 +186,10 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
                     setSettings({ ...settings, enableWikiLinks: e.target.checked })
                   }
                 />
-                <span>Enable wiki-link syntax (preview)</span>
+                <span>{t("settings.wikiLinks")}</span>
               </label>
               <label className="export-form__field">
-                <span>Custom CSS path (sanitized; scripts blocked)</span>
+                <span>{t("settings.customCss")}</span>
                 <input
                   className="settings__input"
                   value={settings.customCssPath ?? ""}
@@ -199,15 +212,15 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
                     })
                   }
                 />
-                <span>Show experimental code-execution UI (never runs without confirm)</span>
+                <span>{t("settings.experimental")}</span>
               </label>
             </section>
 
             <section className="settings__section">
-              <h3 className="settings__h">Updates & diagnostics</h3>
+              <h3 className="settings__h">{t("settings.updatesTitle")}</h3>
               <p className="export-form__hint">{update?.message}</p>
               <label className="export-form__field">
-                <span>Update endpoint (empty = disabled)</span>
+                <span>{t("settings.updateEndpoint")}</span>
                 <input
                   className="settings__input"
                   value={settings.updateEndpoint ?? ""}
@@ -221,7 +234,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
                 />
               </label>
               <button type="button" className="btn" onClick={() => void dumpLog()}>
-                Export crash report
+                {t("settings.exportCrash")}
               </button>
             </section>
           </div>
@@ -229,10 +242,10 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): JSX.Element {
 
         <div className="modal__actions">
           <button type="button" className="btn" onClick={onClose}>
-            Close
+            {t("settings.close")}
           </button>
           <button type="button" className="btn btn--primary" onClick={() => void save()} disabled={!settings}>
-            Save
+            {t("settings.save")}
           </button>
         </div>
       </div>

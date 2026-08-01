@@ -2,6 +2,8 @@
  * Status bar: encoding, line-ending, dirty, read-only, char count, preview status.
  */
 
+import { useT } from "../i18n/I18nProvider";
+
 interface StatusBarProps {
   encoding: string;
   lineEnding: string;
@@ -26,19 +28,19 @@ export function StatusBar({
   reduced,
   degraded,
 }: StatusBarProps): JSX.Element {
+  const t = useT();
+
   return (
     <footer className="statusbar">
-      <span className="statusbar__item">
-        {dirty ? "● Unsaved" : "Saved"}
-      </span>
+      <span className="statusbar__item">{dirty ? t("status.unsaved") : t("status.saved")}</span>
       <span className="statusbar__item">{encoding}</span>
       <span className="statusbar__item">{lineEnding.toUpperCase()}</span>
-      {readOnly && <span className="statusbar__item">Read-only</span>}
-      <span className="statusbar__item">{charCount} chars</span>
-      {degraded && <span className="statusbar__item">Preview: large-file mode</span>}
-      {!degraded && reduced && <span className="statusbar__item">Preview: reduced</span>}
+      {readOnly && <span className="statusbar__item">{t("status.readOnly")}</span>}
+      <span className="statusbar__item">{t("status.chars", { n: charCount })}</span>
+      {degraded && <span className="statusbar__item">{t("preview.largeFileMode")}</span>}
+      {!degraded && reduced && <span className="statusbar__item">{t("preview.reduced")}</span>}
       {previewLabel && <span className="statusbar__item">{previewLabel}</span>}
-      {busy && <span className="statusbar__item statusbar__busy">Working…</span>}
+      {busy && <span className="statusbar__item statusbar__busy">{t("status.working")}</span>}
     </footer>
   );
 }

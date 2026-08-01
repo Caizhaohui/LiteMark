@@ -1,6 +1,6 @@
 [package]
 name = "litemark"
-version = "2.0.0"
+version = "2.1.0"
 description = "LiteMark — a Typora-inspired Windows Markdown desktop editor."
 authors = ["LiteMark"]
 license = "SEE LICENSE IN LICENSE"
@@ -37,6 +37,8 @@ tauri-plugin-single-instance = "2"  # M1: forward file-path args to the running 
 tempfile = "3"                # unit tests: temp dirs for atomic-save / encoding / paths
 
 [features]
-# This feature is used for production builds or when a dev server is not
-# specified, DO NOT REMOVE!!
+# Production builds load the embedded frontend (frontendDist) instead of
+# http://localhost:1420. Always keep this enabled for release binaries.
+# `pnpm tauri build` enables it; default keeps plain `cargo build --release` safe.
+default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]

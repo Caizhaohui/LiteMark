@@ -1,6 +1,6 @@
 {
   "name": "@litemark/markdown-core",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Markdown normalize + hybrid roundtrip guards for LiteMark (M4).",
   "license": "SEE LICENSE IN LICENSE",

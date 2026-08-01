@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useT } from "../i18n/I18nProvider";
 
 interface DropZoneProps {
   /** Called with absolute file paths when a drop is accepted. */
@@ -19,6 +20,7 @@ interface DropZoneProps {
 }
 
 export function DropZone({ onDropPaths, armed }: DropZoneProps): JSX.Element | null {
+  const t = useT();
   const [over, setOver] = useState(false);
 
   // Reset overlay if the drag leaves entirely.
@@ -49,7 +51,7 @@ export function DropZone({ onDropPaths, armed }: DropZoneProps): JSX.Element | n
         onDropPaths([]);
       }}
     >
-      <div className="dropzone__label">Drop Markdown files to open</div>
+      <div className="dropzone__label">{t("dropzone.label")}</div>
     </div>
   );
 }

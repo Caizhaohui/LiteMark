@@ -40,3 +40,11 @@ pub async fn ping_sidecar(
     serde_json::from_value::<PingResult>(result)
         .map_err(|e| command_err(SidecarError::new(ErrorCode::ProtocolInvalid, e.to_string())))
 }
+
+/// Ensure the render sidecar process is running (spawn + ping if needed).
+/// Used by the UI on mount / CLI open so preview does not pay cold-start.
+#[tauri::command]
+pub async fn warm_sidecar(state: State<'_, SidecarManager>) -> CommandResult<bool> {
+    state.ensure_warm().await.map_err(command_err)?;
+    Ok(true)
+}

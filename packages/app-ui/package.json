@@ -1,6 +1,6 @@
 {
   "name": "@litemark/app-ui",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "LiteMark React/TypeScript desktop UI (Vite + Tauri 2 webview).",
   "license": "SEE LICENSE IN LICENSE",

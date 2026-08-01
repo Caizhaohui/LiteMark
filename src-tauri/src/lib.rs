@@ -1,6 +1,7 @@
 //! LiteMark application library (used by `main.rs` and integration tests).
 
 pub mod assets;
+pub mod cli_files;
 pub mod commands;
 pub mod error;
 pub mod files;
@@ -8,6 +9,7 @@ pub mod recovery;
 pub mod session;
 pub mod sidecar;
 
+use cli_files::{collect_cli_files, filter_file_args, PendingCliFiles};
 use commands::{
     documents, export, file_dialogs, pandoc, ping, recent, recovery as recovery_cmd, render,
     settings as settings_cmd,
@@ -32,6 +34,16 @@ pub fn run() {
 
     let sidecar = SidecarManager::new();
     let sessions = SessionManager::new();
+    // Cold-start file association: paths from double-click / shell open.
+    let startup_files = collect_cli_files(std::env::args());
+    if !startup_files.is_empty() {
+        log::info!(
+            "startup CLI files ({}): {:?}",
+            startup_files.len(),
+            startup_files
+        );
+    }
+    let pending_cli = PendingCliFiles::new(startup_files);
 
     let mut builder = tauri::Builder::default();
 
@@ -48,9 +60,13 @@ pub fn run() {
     if let Err(e) = builder
         .manage(sidecar)
         .manage(sessions)
+        .manage(pending_cli)
         .invoke_handler(tauri::generate_handler![
             // M0
             ping::ping_sidecar,
+            ping::warm_sidecar,
+            // File association / CLI open
+            take_pending_cli_files,
             // M1 — documents
             documents::new_document,
             documents::open_file,
@@ -108,10 +124,22 @@ pub fn run() {
         .setup(|app| {
             log::info!("LiteMark window initialized: {}", app.package_info().name);
             // Wire AppHandle into SidecarManager so export progress events forward.
+            // P1-1: warm the render sidecar in the background so the first preview
+            // after double-click open does not wait on Node/crossnote cold start.
             let handle = app.handle().clone();
             let mgr = app.state::<SidecarManager>().inner().clone();
+            let has_cli_files = {
+                let pending = app.state::<PendingCliFiles>();
+                !pending.peek().is_empty()
+            };
             tauri::async_runtime::spawn(async move {
                 mgr.set_app_handle(handle).await;
+                if has_cli_files {
+                    log::info!("[sidecar] CLI open paths present — warming immediately");
+                }
+                if let Err(e) = mgr.ensure_warm().await {
+                    log::warn!("[sidecar] startup warm failed (preview will retry): {e}");
+                }
             });
             Ok(())
         })
@@ -122,16 +150,35 @@ pub fn run() {
     }
 }
 
+/// Consume cold-start CLI / file-association paths (once). Frontend opens them
+/// on mount. Second-instance opens still use the `open-files` event.
+///
+/// P1-3: when paths are present, kick sidecar warm in parallel so open + warm
+/// race instead of serializing behind the first preview render.
+#[tauri::command]
+async fn take_pending_cli_files(
+    pending: tauri::State<'_, PendingCliFiles>,
+    sidecar: tauri::State<'_, SidecarManager>,
+) -> Result<Vec<String>, String> {
+    let files = pending.take();
+    if !files.is_empty() {
+        let mgr = sidecar.inner().clone();
+        tauri::async_runtime::spawn(async move {
+            if let Err(e) = mgr.ensure_warm().await {
+                log::warn!("[sidecar] warm on CLI open failed: {e}");
+            }
+        });
+    }
+    Ok(files)
+}
+
 /// Shared single-instance callback body (kept top-level so the plugin init and
 /// the `#[cfg]` helper agree on the signature).
 #[cfg(desktop)]
 fn single_instance_callback(app: &tauri::AppHandle, argv: Vec<String>, _cwd: String) {
     let app_handle = app.clone();
-    let files: Vec<String> = argv
-        .into_iter()
-        .skip(1)
-        .filter(|a| !a.starts_with('-') && std::path::Path::new(a).is_file())
-        .collect();
+    // argv[0] is the executable; remaining args may include file paths.
+    let files = filter_file_args(argv.into_iter().skip(1));
     if !files.is_empty() {
         if let Some(window) = app_handle.get_webview_window("main") {
             let _ = window.show();

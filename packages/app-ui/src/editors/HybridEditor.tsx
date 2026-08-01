@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx } from "@milkdown/kit/core";
+import { useT } from "../i18n/I18nProvider";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
@@ -108,12 +109,11 @@ export interface HybridEditorProps {
 }
 
 export function HybridEditor(props: HybridEditorProps): JSX.Element {
+  const t = useT();
   if (props.disabled) {
     return (
       <div className="editor">
-        <div className="editor__placeholder">
-          No document open. Press ＋ to create or Open to load a file.
-        </div>
+        <div className="editor__placeholder">{t("editor.empty")}</div>
       </div>
     );
   }
@@ -147,6 +147,7 @@ export const HybridToolbar = ({
   disabled?: boolean;
   onCommand: (cmd: HybridToolbarCommand) => void;
 }): JSX.Element => {
+  const t = useT();
   const btn = useCallback(
     (label: string, cmd: HybridToolbarCommand, title: string) => (
       <button
@@ -163,17 +164,17 @@ export const HybridToolbar = ({
   );
 
   return (
-    <div className="hybrid-toolbar" role="toolbar" aria-label="Hybrid formatting">
-      {btn("B", "toggleStrong", "Bold")}
-      {btn("I", "toggleEmphasis", "Italic")}
-      {btn("S", "toggleInlineCode", "Inline code")}
-      {btn("H1", "wrapHeading1", "Heading 1")}
-      {btn("H2", "wrapHeading2", "Heading 2")}
-      {btn("•", "wrapBulletList", "Bullet list")}
-      {btn("1.", "wrapOrderedList", "Ordered list")}
-      {btn("☐", "wrapTaskList", "Task list")}
-      {btn("“", "wrapBlockquote", "Quote")}
-      {btn("—", "insertHr", "Horizontal rule")}
+    <div className="hybrid-toolbar" role="toolbar" aria-label={t("hybrid.toolbar")}>
+      {btn("B", "toggleStrong", t("hybrid.bold"))}
+      {btn("I", "toggleEmphasis", t("hybrid.italic"))}
+      {btn("S", "toggleInlineCode", t("hybrid.inlineCode"))}
+      {btn("H1", "wrapHeading1", t("hybrid.h1"))}
+      {btn("H2", "wrapHeading2", t("hybrid.h2"))}
+      {btn("•", "wrapBulletList", t("hybrid.bulletList"))}
+      {btn("1.", "wrapOrderedList", t("hybrid.orderedList"))}
+      {btn("☐", "wrapTaskList", t("hybrid.taskList"))}
+      {btn("“", "wrapBlockquote", t("hybrid.quote"))}
+      {btn("—", "insertHr", t("hybrid.hr"))}
     </div>
   );
 };

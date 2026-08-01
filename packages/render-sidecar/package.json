@@ -1,6 +1,6 @@
 {
   "name": "@litemark/render-sidecar",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "LiteMark Node.js render sidecar. Speaks the JSON Lines IPC protocol over stdin/stdout and wraps crossnote for in-memory Markdown rendering and HTML/PDF export.",
   "license": "SEE LICENSE IN LICENSE",

@@ -4,6 +4,9 @@
 //! spawned on first use; restarted automatically after a crash on the next
 //! request (the M0 acceptance criterion: "sidecar 崩溃后可重启").
 //!
+//! Startup also calls [`SidecarManager::ensure_warm`] so double-click open does
+//! not pay the full Node/crossnote cold-start cost on the first preview.
+//!
 //! M3: supports long-timeout export requests and forwards sidecar events
 //! (`exportProgress`) to the webview as Tauri `export-progress` events.
 
@@ -38,6 +41,51 @@ impl SidecarManager {
     /// Attach the AppHandle so sidecar stdout events can be re-emitted to the UI.
     pub async fn set_app_handle(&self, app: AppHandle) {
         *self.app.lock().await = Some(app);
+    }
+
+    /// Spawn the sidecar if needed and issue a `ping` so Node + crossnote load
+    /// before the first real preview (P1 warm path).
+    ///
+    /// Safe to call repeatedly; concurrent callers serialize on the mutex.
+    pub async fn ensure_warm(&self) -> Result<(), SidecarError> {
+        let started = std::time::Instant::now();
+        let mut guard = self.sidecar.lock().await;
+        if guard.is_none() {
+            let app = self.app.lock().await.clone();
+            log::info!("[sidecar] warm: spawning…");
+            let sidecar = Sidecar::spawn_with_events(app).await?;
+            // Force protocol handshake / module load path.
+            match sidecar
+                .request_with_timeout(
+                    "ping",
+                    serde_json::json!({ "sentAt": "warm" }),
+                    Duration::from_secs(30),
+                )
+                .await
+            {
+                Ok(_) => {
+                    log::info!(
+                        "[sidecar] warm: ready in {} ms",
+                        started.elapsed().as_millis()
+                    );
+                }
+                Err(e) => {
+                    log::warn!("[sidecar] warm: ping failed after spawn: {e}");
+                    // Keep the process if still alive; next request may recover.
+                }
+            }
+            *guard = Some(sidecar);
+        } else if let Some(sidecar) = guard.as_ref() {
+            // Already running — cheap liveness check.
+            let _ = sidecar
+                .request_with_timeout("ping", serde_json::json!({}), Duration::from_secs(5))
+                .await;
+            log::debug!(
+                "[sidecar] warm: already running ({} ms)",
+                started.elapsed().as_millis()
+            );
+        }
+        Ok(())
     }
 
     /// Lazily spawn the sidecar if not already running, then issue a request.

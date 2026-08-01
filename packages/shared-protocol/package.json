@@ -1,6 +1,6 @@
 {
   "name": "@litemark/shared-protocol",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Shared JSON Lines IPC protocol between LiteMark Rust core and the render sidecar.",
   "license": "SEE LICENSE IN LICENSE",

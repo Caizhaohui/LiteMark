@@ -22,12 +22,14 @@ import { ExportDialog } from "./components/ExportDialog";
 import { LicensesDialog } from "./components/LicensesDialog";
 import { ModeSwitchWarning } from "./components/ModeSwitchWarning";
 import { SettingsDialog } from "./components/settings/SettingsDialog";
+import { SplitPane } from "./components/SplitPane";
 import type { EditorMode } from "./components/EditorModeBar";
 import { HybridEditor, HybridToolbar, applyToolbarMarkdown, type HybridToolbarCommand } from "./editors/HybridEditor";
 import { useDocumentStore } from "./hooks/useDocumentStore";
 import { useRecovery } from "./hooks/useRecovery";
 import { usePreview } from "./hooks/usePreview";
 import { useExport } from "./hooks/useExport";
+import { useT } from "./i18n/I18nProvider";
 import * as cmd from "./services/tauriCommands";
 
 import "katex/dist/katex.min.css";
@@ -35,6 +37,7 @@ import "katex/dist/katex.min.css";
 const MARKDOWN_EXT = /\.(md|markdown|mdx|mkd)$/i;
 
 export function App(): JSX.Element {
+  const t = useT();
   const store = useDocumentStore();
   const recovery = useRecovery();
   const exporter = useExport();
@@ -62,14 +65,56 @@ export function App(): JSX.Element {
   const openPathRef = useRef(store.openPath);
   openPathRef.current = store.openPath;
 
+  // P1-1: warm render sidecar as soon as the UI mounts (overlaps with chrome paint).
+  // Rust setup also warms; this is a second kick if setup lag or warm failed.
+  useEffect(() => {
+    void cmd.warmSidecar().catch(() => {
+      /* non-fatal — first preview will spawn on demand */
+    });
+  }, []);
+
+  // Second instance / already-running app: paths arrive via event.
   useEffect(() => {
     const unlistenPromise = cmd.onOpenFiles((files) => {
+      // P1-3: keep sidecar hot while opening forwarded files.
+      void cmd.warmSidecar().catch(() => {});
       for (const f of files) {
         if (MARKDOWN_EXT.test(f)) void openPathRef.current(f);
       }
     });
     return () => {
       void unlistenPromise.then((un) => un());
+    };
+  }, []);
+
+  // Cold start: double-click / "Open with LiteMark" passes paths as argv.
+  // Rust stores them; we consume and open once the UI is ready.
+  // P1-3: warm sidecar in parallel with take + open (Rust also warms on take).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const warm = cmd.warmSidecar().catch(() => false);
+        const pending = await cmd.takePendingCliFiles();
+        if (cancelled) return;
+        if (pending.length === 0) {
+          void warm;
+          return;
+        }
+        // Do not await warm before open — open and warm race; preview waits on render.
+        void warm;
+        for (const f of pending) {
+          if (cancelled) return;
+          if (MARKDOWN_EXT.test(f)) {
+            await openPathRef.current(f);
+          }
+        }
+      } catch {
+        // Non-fatal: user can still Open manually.
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -208,8 +253,15 @@ export function App(): JSX.Element {
       state.activeId,
       state.activeContent,
       activeSession?.displayName ?? "document",
+      activeSession?.filePath ?? null,
     );
-  }, [activeSession?.displayName, exporter, state.activeContent, state.activeId]);
+  }, [
+    activeSession?.displayName,
+    activeSession?.filePath,
+    exporter,
+    state.activeContent,
+    state.activeId,
+  ]);
 
   const startExportPdf = useCallback(() => {
     if (!state.activeId) return;
@@ -218,19 +270,36 @@ export function App(): JSX.Element {
       state.activeId,
       state.activeContent,
       activeSession?.displayName ?? "document",
+      activeSession?.filePath ?? null,
     );
-  }, [activeSession?.displayName, exporter, state.activeContent, state.activeId]);
+  }, [
+    activeSession?.displayName,
+    activeSession?.filePath,
+    exporter,
+    state.activeContent,
+    state.activeId,
+  ]);
 
   const startExportPandoc = useCallback(
     async (format: "docx" | "epub" | "latex") => {
       if (!state.activeId) return;
-      const base = (activeSession?.displayName ?? "document").replace(
-        /\.(md|markdown|mdx|mkd)$/i,
-        "",
-      );
+      let base = activeSession?.displayName ?? "document";
+      const fp = activeSession?.filePath ?? null;
+      if (fp) {
+        const slash = Math.max(fp.lastIndexOf("\\"), fp.lastIndexOf("/"));
+        const leaf = slash >= 0 ? fp.slice(slash + 1) : fp;
+        if (leaf.trim()) base = leaf;
+      }
+      base = base.replace(/\.(md|markdown|mdx|mkd|mkdn|mdown)$/i, "") || "document";
       const ext = format === "latex" ? "tex" : format;
+      const dir = fp
+        ? (() => {
+            const slash = Math.max(fp.lastIndexOf("\\"), fp.lastIndexOf("/"));
+            return slash > 0 ? fp.slice(0, slash) : null;
+          })()
+        : null;
       try {
-        const path = await cmd.showPandocExportDialog(format, `${base}.${ext}`);
+        const path = await cmd.showPandocExportDialog(format, `${base}.${ext}`, dir);
         if (!path) return;
         const result = await cmd.exportWithPandoc({
           sessionId: state.activeId,
@@ -238,13 +307,19 @@ export function App(): JSX.Element {
           format,
           markdown: state.activeContent,
         });
-        window.alert(`Exported ${format.toUpperCase()} (${result.bytes} bytes)\n${result.outputPath}`);
+        window.alert(
+          t("export.exportedAlert", {
+            format: format.toUpperCase(),
+            bytes: result.bytes,
+            path: result.outputPath,
+          }),
+        );
       } catch (e) {
         const err = cmd.toCoreError(e);
         window.alert(err.message);
       }
     },
-    [activeSession?.displayName, state.activeContent, state.activeId],
+    [activeSession?.displayName, activeSession?.filePath, state.activeContent, state.activeId, t],
   );
 
   const showLicenses = useCallback(async () => {
@@ -253,9 +328,9 @@ export function App(): JSX.Element {
       setLicensesText(text);
     } catch (e) {
       const err = cmd.toCoreError(e);
-      setLicensesText(`Could not load notices: ${err.message}`);
+      setLicensesText(t("licenses.loadFailed", { message: err.message }));
     }
-  }, []);
+  }, [t]);
 
   const pendingCloseName = state.pendingClose
     ? state.sessions.find((s) => s.id === state.pendingClose!.sessionId)?.displayName ?? "document"
@@ -263,12 +338,15 @@ export function App(): JSX.Element {
 
   let previewLabel: string | null = null;
   if (previewEnabled) {
-    if (preview.status === "pending") previewLabel = "Preview: rendering…";
+    if (preview.status === "pending") previewLabel = t("preview.statusRendering");
     else if (preview.status === "ready" && preview.renderMs != null) {
-      previewLabel = `Preview: ${preview.renderMs} ms`;
-    } else if (preview.status === "error") previewLabel = "Preview: error";
-    else if (preview.status === "degraded") previewLabel = "Preview: paused";
+      previewLabel = t("preview.statusMs", { ms: preview.renderMs });
+    } else if (preview.status === "error") previewLabel = t("preview.statusError");
+    else if (preview.status === "degraded") previewLabel = t("preview.statusPaused");
   }
+
+  const editorModeLabel =
+    editorMode === "hybrid" ? t("editorMode.hybrid") : t("editorMode.source");
 
   const showEditor = layout === "source" || layout === "split";
   const showPreview = layout === "preview" || layout === "split";
@@ -276,7 +354,7 @@ export function App(): JSX.Element {
   return (
     <div className="appshell">
       <a className="skip-link" href="#main-editor">
-        Skip to editor
+        {t("app.skipToEditor")}
       </a>
       <TabBar
         sessions={state.sessions}
@@ -307,43 +385,87 @@ export function App(): JSX.Element {
         className={`appshell__main ${layout === "split" ? "appshell__main--split" : ""}`}
         tabIndex={-1}
       >
-        {showEditor && editorMode === "source" && (
-          <EditorPane
-            value={state.activeContent}
-            readOnly={state.activeReadOnly}
-            disabled={!activeSession}
-            onChange={(v) => store.onContentChange(v)}
-            scrollRatio={editorScroll}
-            onScrollRatio={onEditorScroll}
+        {layout === "split" ? (
+          <SplitPane
+            left={
+              editorMode === "hybrid" ? (
+                <HybridEditor
+                  value={state.activeContent}
+                  readOnly={state.activeReadOnly}
+                  disabled={!activeSession}
+                  documentKey={state.activeId ?? "none"}
+                  onChange={(v) => store.onContentChange(v)}
+                />
+              ) : (
+                <EditorPane
+                  value={state.activeContent}
+                  readOnly={state.activeReadOnly}
+                  disabled={!activeSession}
+                  onChange={(v) => store.onContentChange(v)}
+                  scrollRatio={editorScroll}
+                  onScrollRatio={onEditorScroll}
+                />
+              )
+            }
+            right={
+              <PreviewPane
+                html={preview.html}
+                toc={preview.toc}
+                diagnostics={preview.diagnostics}
+                status={preview.status}
+                error={preview.error}
+                renderMs={preview.renderMs}
+                sessionId={state.activeId}
+                filePath={activeSession?.filePath ?? null}
+                degraded={preview.degraded}
+                onRequestPreview={preview.requestManualPreview}
+                scrollRatio={previewScroll}
+                onScrollRatio={onPreviewScroll}
+                scrollToId={tocJump}
+                onTocNavigate={(id) => setTocJump(id)}
+              />
+            }
           />
-        )}
-        {showEditor && editorMode === "hybrid" && (
-          <HybridEditor
-            value={state.activeContent}
-            readOnly={state.activeReadOnly}
-            disabled={!activeSession}
-            documentKey={state.activeId ?? "none"}
-            onChange={(v) => store.onContentChange(v)}
-          />
-        )}
-        {layout === "split" && <div className="appshell__divider" aria-hidden />}
-        {showPreview && (
-          <PreviewPane
-            html={preview.html}
-            toc={preview.toc}
-            diagnostics={preview.diagnostics}
-            status={preview.status}
-            error={preview.error}
-            renderMs={preview.renderMs}
-            sessionId={state.activeId}
-            filePath={activeSession?.filePath ?? null}
-            degraded={preview.degraded}
-            onRequestPreview={preview.requestManualPreview}
-            scrollRatio={previewScroll}
-            onScrollRatio={onPreviewScroll}
-            scrollToId={tocJump}
-            onTocNavigate={(id) => setTocJump(id)}
-          />
+        ) : (
+          <>
+            {showEditor && editorMode === "source" && (
+              <EditorPane
+                value={state.activeContent}
+                readOnly={state.activeReadOnly}
+                disabled={!activeSession}
+                onChange={(v) => store.onContentChange(v)}
+                scrollRatio={editorScroll}
+                onScrollRatio={onEditorScroll}
+              />
+            )}
+            {showEditor && editorMode === "hybrid" && (
+              <HybridEditor
+                value={state.activeContent}
+                readOnly={state.activeReadOnly}
+                disabled={!activeSession}
+                documentKey={state.activeId ?? "none"}
+                onChange={(v) => store.onContentChange(v)}
+              />
+            )}
+            {showPreview && (
+              <PreviewPane
+                html={preview.html}
+                toc={preview.toc}
+                diagnostics={preview.diagnostics}
+                status={preview.status}
+                error={preview.error}
+                renderMs={preview.renderMs}
+                sessionId={state.activeId}
+                filePath={activeSession?.filePath ?? null}
+                degraded={preview.degraded}
+                onRequestPreview={preview.requestManualPreview}
+                scrollRatio={previewScroll}
+                onScrollRatio={onPreviewScroll}
+                scrollToId={tocJump}
+                onTocNavigate={(id) => setTocJump(id)}
+              />
+            )}
+          </>
         )}
       </main>
 
@@ -356,9 +478,9 @@ export function App(): JSX.Element {
         busy={state.busy}
         previewLabel={
           previewLabel
-            ? `${previewLabel} · ${editorMode === "hybrid" ? "Hybrid" : "Source"}`
+            ? `${previewLabel} · ${editorModeLabel}`
             : editorMode === "hybrid"
-              ? "Hybrid"
+              ? editorModeLabel
               : null
         }
         reduced={preview.reduced}
@@ -373,7 +495,7 @@ export function App(): JSX.Element {
               <button
                 type="button"
                 className="notice__close"
-                aria-label="Dismiss"
+                aria-label={t("app.dismiss")}
                 onClick={() => store.dismissNotice(n.id)}
               >
                 ×

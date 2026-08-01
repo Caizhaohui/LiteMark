@@ -197,6 +197,15 @@ impl Sidecar {
             // Ensure the sidecar dies with the app on Windows.
             .kill_on_drop(true);
 
+        // Node is a console subsystem binary. Without CREATE_NO_WINDOW, Windows
+        // allocates a visible console (often looking like PowerShell/cmd) every
+        // time the render sidecar starts (open file / first preview).
+        #[cfg(windows)]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+            command.creation_flags(CREATE_NO_WINDOW);
+        }
+
         let mut child = command.spawn().map_err(|e| {
             SidecarError::new(ErrorCode::SidecarStartFailed, format!("spawn node: {e}"))
         })?;

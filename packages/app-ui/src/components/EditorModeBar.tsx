@@ -2,6 +2,8 @@
  * Source vs Hybrid editor mode switch (M4). Distinct from layout (source/split/preview).
  */
 
+import { useT } from "../i18n/I18nProvider";
+
 export type EditorMode = "source" | "hybrid";
 
 interface EditorModeBarProps {
@@ -11,27 +13,29 @@ interface EditorModeBarProps {
 }
 
 export function EditorModeBar({ mode, disabled, onChange }: EditorModeBarProps): JSX.Element {
+  const t = useT();
+
   return (
-    <div className="viewmode" role="toolbar" aria-label="Editor mode">
+    <div className="viewmode" role="toolbar" aria-label={t("editorMode.label")}>
       <button
         type="button"
         className={`viewmode__btn ${mode === "source" ? "viewmode__btn--active" : ""}`}
         disabled={disabled}
         aria-pressed={mode === "source"}
-        title="Source mode (Monaco)"
+        title={t("editorMode.sourceTitle")}
         onClick={() => onChange("source")}
       >
-        Source
+        {t("editorMode.source")}
       </button>
       <button
         type="button"
         className={`viewmode__btn ${mode === "hybrid" ? "viewmode__btn--active" : ""}`}
         disabled={disabled}
         aria-pressed={mode === "hybrid"}
-        title="Hybrid mode (Milkdown)"
+        title={t("editorMode.hybridTitle")}
         onClick={() => onChange("hybrid")}
       >
-        Hybrid
+        {t("editorMode.hybrid")}
       </button>
     </div>
   );

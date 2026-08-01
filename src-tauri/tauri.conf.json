@@ -45,7 +45,8 @@
     "resources": [
       "resources/sidecar/**/*",
       "resources/THIRD_PARTY_NOTICES.md",
-      "resources/LICENSE"
+      "resources/LICENSE",
+      "resources/markdown-file.ico"
     ],
     "fileAssociations": [
       {
@@ -60,7 +61,8 @@
       "nsis": {
         "installMode": "currentUser",
         "displayLanguageSelector": false,
-        "startMenuFolder": "LiteMark"
+        "startMenuFolder": "LiteMark",
+        "installerHooks": "./windows/nsis-hooks.nsh"
       }
     }
   }

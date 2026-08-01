@@ -1,0 +1,9 @@
+packages:
+  - "packages/*"
+
+# pnpm 11+ build-script approvals.
+# esbuild (transitive via Vite) and sharp (transitive via crossnote) ship native
+# binaries built in postinstall; pnpm requires explicit approval before running.
+allowBuilds:
+  esbuild: true
+  sharp: true

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: rustfmt, clippy
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build sidecar
+        run: pnpm --filter @litemark/render-sidecar build
+
+      - name: Typecheck
+        run: pnpm -r --parallel run typecheck
+
+      - name: Unit tests (JS)
+        run: pnpm -r test
+
+      - name: Rust fmt
+        run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
+
+      - name: Rust clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Frontend build
+        run: pnpm --filter @litemark/app-ui build
+
+      - name: Malicious markdown fixture present
+        run: Test-Path testdata/malicious/script-injection.md

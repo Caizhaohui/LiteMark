@@ -1,0 +1,24 @@
+LiteMark render sidecar (release layout)
+========================================
+
+Expected layout next to LiteMark.exe (or under resources/):
+
+  sidecar/index.js          — built render-sidecar entry
+  sidecar/**                — compiled JS from packages/render-sidecar/dist
+  node/node.exe             — optional portable Node (set LITEMARK_BUNDLE_NODE=1)
+
+Environment overrides (dev or custom installs):
+
+  LITEMARK_SIDECAR_ENTRY  — absolute path to index.js
+  LITEMARK_NODE           — absolute path to node executable
+
+PDF export uses the system Microsoft Edge or Google Chrome (no bundled Chromium).
+Install Edge on Windows if PDF export reports BROWSER_NOT_FOUND.
+
+For a fully offline end-user install without system Node:
+
+  1. pnpm --filter @litemark/render-sidecar build
+  2. Set LITEMARK_BUNDLE_NODE=1 and LITEMARK_NODE=<path-to-node.exe>
+  3. Also ship node_modules for the sidecar (crossnote, puppeteer-core, …)
+     next to sidecar/ or use a packager (pkg/nexe) — native modules apply.
+  4. pnpm tauri build

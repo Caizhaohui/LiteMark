@@ -1,0 +1,31 @@
+{
+  "name": "@litemark/markdown-core",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Markdown normalize + hybrid roundtrip guards for LiteMark (M4).",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "generate:fixtures": "node ./scripts/generate-fixtures.mjs"
+  },
+  "dependencies": {
+    "remark-gfm": "^4.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

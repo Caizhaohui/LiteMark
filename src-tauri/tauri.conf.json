@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "LiteMark",
+  "version": "2.0.0",
+  "identifier": "com.litemark.app",
+  "build": {
+    "beforeDevCommand": "pnpm --filter @litemark/render-sidecar build && pnpm --filter @litemark/app-ui dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm --filter @litemark/render-sidecar build && pnpm --filter @litemark/app-ui build && node scripts/prepare-release-resources.mjs",
+    "frontendDist": "../packages/app-ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "LiteMark",
+        "width": 1100,
+        "height": 750,
+        "minWidth": 720,
+        "minHeight": 480,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "withGlobalTauri": true
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "copyright": "Copyright (c) 2026 LiteMark contributors",
+    "category": "Productivity",
+    "shortDescription": "Typora-inspired Markdown desktop editor",
+    "longDescription": "LiteMark is a Windows Markdown desktop editor that pairs Monaco source editing with the crossnote rendering engine for live preview and HTML/PDF export.",
+    "resources": [
+      "resources/sidecar/**/*",
+      "resources/THIRD_PARTY_NOTICES.md",
+      "resources/LICENSE"
+    ],
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mdx", "mkd"],
+        "name": "Markdown",
+        "description": "Markdown Document",
+        "role": "Editor",
+        "mimeType": "text/markdown"
+      }
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "startMenuFolder": "LiteMark"
+      }
+    }
+  }
+}

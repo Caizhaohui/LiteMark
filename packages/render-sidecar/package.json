@@ -1,0 +1,35 @@
+{
+  "name": "@litemark/render-sidecar",
+  "version": "2.0.0",
+  "private": true,
+  "description": "LiteMark Node.js render sidecar. Speaks the JSON Lines IPC protocol over stdin/stdout and wraps crossnote for in-memory Markdown rendering and HTML/PDF export.",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@litemark/shared-protocol": "workspace:*",
+    "crossnote": "0.9.31",
+    "puppeteer-core": "^24.16.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -1,0 +1,42 @@
+[package]
+name = "litemark"
+version = "2.0.0"
+description = "LiteMark — a Typora-inspired Windows Markdown desktop editor."
+authors = ["LiteMark"]
+license = "SEE LICENSE IN LICENSE"
+repository = "https://github.com/Caizhaohui-tib/LiteMark"
+default-run = "litemark"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "litemark_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "macros", "time", "sync", "fs"] }
+thiserror = "2"
+log = "0.4"
+env_logger = "0.11"
+# M1: document lifecycle & file safety
+sha2 = "0.10"                 # content hashing for dirty detection (§6.1)
+encoding_rs = "0.8"           # robust UTF-8 / BOM sniffing (avoid hand-rolled BOM parsing)
+chrono = { version = "0.4", features = ["serde"] }  # recovery snapshot timestamps (ISO 8601)
+uuid = { version = "1", features = ["v4", "serde"] }  # session / recovery ids
+dirs = "5"                    # LOCALAPPDATA / app-data dir resolution for recovery (§6.3)
+rfd = "0.15"                  # native open/save dialogs brokered by Rust (no webview fs perm)
+tauri-plugin-single-instance = "2"  # M1: forward file-path args to the running instance
+
+[dev-dependencies]
+tempfile = "3"                # unit tests: temp dirs for atomic-save / encoding / paths
+
+[features]
+# This feature is used for production builds or when a dev server is not
+# specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

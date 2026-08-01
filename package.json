@@ -1,0 +1,30 @@
+{
+  "name": "litemark",
+  "version": "2.0.0",
+  "private": true,
+  "description": "LiteMark - a Typora-inspired Windows Markdown desktop editor.",
+  "license": "SEE LICENSE IN LICENSE",
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "setup": "bash scripts/setup-env.sh",
+    "dev": "pnpm tauri dev",
+    "build": "pnpm --filter @litemark/app-ui build",
+    "preview": "pnpm --filter @litemark/app-ui preview",
+    "lint": "pnpm -r --parallel run lint",
+    "typecheck": "pnpm -r --parallel run typecheck",
+    "check:rust": "cargo fmt --check --manifest-path src-tauri/Cargo.toml && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "check": "pnpm lint && pnpm typecheck && pnpm check:rust",
+    "test": "pnpm -r --if-present test",
+    "sbom": "node scripts/sbom.mjs",
+    "audit:deps": "node scripts/audit.mjs",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.5.0",
+    "typescript": "^5.7.0"
+  }
+}
